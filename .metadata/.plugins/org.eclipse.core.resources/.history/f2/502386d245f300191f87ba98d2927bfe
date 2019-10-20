@@ -1,0 +1,85 @@
+package jobs;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import org.dizitart.no2.Document;
+import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.NitriteCollection;
+import org.dizitart.no2.event.ChangeInfo;
+import org.dizitart.no2.event.ChangeListener;
+import org.dizitart.no2.objects.ObjectRepository;
+import org.dizitart.no2.tool.ExportOptions;
+import org.dizitart.no2.tool.Exporter;
+
+import combiners.CombineWordCountNitrite;
+import data_producer.DataProducer;
+import data_store.Word;
+
+public class WordCount implements Job<NitriteCollection>{
+	private DataProducer producer;
+	private int workers;
+	private int workerBytes;
+	private String regex;
+	
+	public WordCount(DataProducer producer, int workers, int chunkSize, String regex) {
+		this.producer = producer;
+		this.workers = workers;
+		this.workerBytes = chunkSize;
+		this.regex = regex;
+	}
+	
+	public NitriteCollection execute() {
+		producer.initialize();
+		Nitrite db = Nitrite.builder()
+				.filePath("./test.db")
+				.openOrCreate();
+		NitriteCollection wordCollection = db.getCollection("words");
+		wordCollection.drop();
+		wordCollection = db.getCollection("words");
+		ExecutorService executor = Executors.newFixedThreadPool(workers);
+		List<Future<Document>> futures = new ArrayList<Future<Document>>();
+		
+		//Submit initial Callables to the executor.
+		for (int i = 0; i < workers; i++) {
+			byte[] bytes = producer.get(this.workerBytes);
+			Future<Document> wordCounts = executor.submit(new CombineWordCountNitrite(bytes, this.regex));
+			futures.add(wordCounts);
+		}
+		
+		List<Future<Document>> toRemove = new ArrayList<>();
+		List<Future<Document>> toAdd = new ArrayList<>();
+		//Check Each future and add a new callable to the executor if there is more data to process
+		while (producer.hasRemaining()) {
+			for (Future<Document> workerResult : futures) {
+				if (workerResult.isDone()) {
+					toRemove.add(workerResult);
+					byte[] bytes = producer.get(this.workerBytes);
+					try {
+						Document subCounts = workerResult.get();
+						wordCollection.insert(subCounts);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ExecutionException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					toAdd.add(executor.submit(new CombineWordCountNitrite(bytes, this.regex)));
+				}
+			}
+			futures.removeAll(toRemove);
+			toRemove.clear();
+			futures.addAll(toAdd);
+			toAdd.clear();
+		}
+		executor.shutdown();
+		producer.close();
+		return wordCollection;
+	}
+}

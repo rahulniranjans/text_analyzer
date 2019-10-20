@@ -1,0 +1,25 @@
+package data_producer;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.stream.Stream;
+
+public class LineProducer implements DataProducer {
+	private BufferedReader reader;
+	
+	public LineProducer() {
+		
+	}
+	public boolean hasRemaining() {
+		return true;
+	}
+	public byte[] get(int bytes) {
+		
+	}
+	public void initialize(String filePath) {
+		this.reader = new BufferedReader(new FileReader(filePath), 2048);
+	}
+	public void close() {
+		
+	}
+}

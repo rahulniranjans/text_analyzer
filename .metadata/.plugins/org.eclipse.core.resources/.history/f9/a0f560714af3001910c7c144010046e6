@@ -1,0 +1,8 @@
+package data_producer;
+
+public interface DataProducer<T> {
+	public boolean hasRemaining();
+	public T get(int amount);
+	public void initialize(String filePath);
+	public void close();
+}

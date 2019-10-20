@@ -1,0 +1,64 @@
+package jobs;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import combiners.CombineWordCount;
+import data_producer.DataProducer;
+
+public class MaxWordCount implements Job<Map<String, Integer>>{
+	private DataProducer producer;
+	private int workers;
+	private int workerBytes;
+	private String regex;
+	private int max;
+	
+	public MaxWordCount(DataProducer producer, int workers, int chunkSize, String regex, int max) {
+		this.producer = producer;
+		this.workers = workers;
+		this.workerBytes = chunkSize;
+		this.regex = regex;
+		this.max = max;
+	}
+	
+	public Map<String, Integer> execute() {
+		producer.initialize();
+		ConcurrentHashMap<String, Integer> wordCounts = new ConcurrentHashMap<String, Integer>();
+		ExecutorService executor = Executors.newFixedThreadPool(workers);
+		List<Future<Long>> futures = new ArrayList<Future<Long>>();
+		//Submit initial Callables to the executor.
+		for (int i = 0; i < workers; i++) {
+			byte[] bytes = producer.get(this.workerBytes);
+			Future<Long> runTime = executor.submit(new CombineWordCount(bytes, wordCounts,this.regex));
+			futures.add(runTime);
+		}
+		
+		List<Future<Long>> toRemove = new ArrayList<>();
+		List<Future<Long>> toAdd = new ArrayList<>();
+		//Check Each future and add a new callable to the executor if there is more data to process
+		while (producer.hasRemaining()) {
+			for (Future<Long> workerResult : futures) {
+				if (workerResult.isDone()) {
+					toRemove.add(workerResult);
+					byte[] bytes = producer.get(this.workerBytes);
+					toAdd.add(executor.submit(new CombineWordCount(bytes, wordCounts,this.regex)));
+				}
+			}
+			futures.removeAll(toRemove);
+			toRemove.clear();
+			futures.addAll(toAdd);
+			toAdd.clear();
+			while (wordCounts.mappingCount() > max) {
+				
+			}
+		}
+		executor.shutdown();
+		producer.close();
+		return wordCounts;
+	}
+}

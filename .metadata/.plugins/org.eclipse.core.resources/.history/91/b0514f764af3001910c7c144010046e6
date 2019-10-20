@@ -1,0 +1,31 @@
+package data_producer;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.stream.Stream;
+
+public class LineProducer implements DataProducer<String> {
+	private BufferedReader reader;
+	
+	public LineProducer() {
+		
+	}
+	
+	public boolean hasRemaining() {
+		return true;
+	}
+	
+	public String get(int bytes) {
+		return null;
+	}
+	
+	public void initialize(String filePath) throws FileNotFoundException {
+		FileReader fileReader = new FileReader(filePath);
+		this.reader = new BufferedReader(fileReader, 2048);
+	}
+	
+	public void close() {
+		
+	}
+}

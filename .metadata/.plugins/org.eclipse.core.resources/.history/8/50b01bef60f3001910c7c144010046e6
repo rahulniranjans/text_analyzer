@@ -1,0 +1,12 @@
+package jobs;
+
+public class SetCount implements Job{
+
+	@Override
+	public Object execute() {
+		
+		return null;
+	}
+
+	
+}

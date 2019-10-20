@@ -1,0 +1,14 @@
+package bigData;
+
+import data_producer.DataProducer;
+import data_producer.LineProducer;
+import jobs.WordCount;
+
+public class Driver {
+
+	public static void main(String[] args) {
+		DataProducer<String> producer = new LineProducer();
+		WordCount wc = new WordCount(producer, 2048, 5000, "wordcount/chapter6.csv");
+		wc.execute();
+	}
+}
