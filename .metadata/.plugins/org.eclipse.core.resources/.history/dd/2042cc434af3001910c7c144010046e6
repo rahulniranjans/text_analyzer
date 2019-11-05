@@ -1,8 +1,0 @@
-package data_producer;
-
-public interface DataProducer {
-	public boolean hasRemaining();
-	public byte[] get(int bytes);
-	public void initialize(String filePath);
-	public void close();
-}

@@ -48,14 +48,18 @@ public class SetCount implements Job<Object> {
 	}
 
 	private void writeResults(String path, Map<Set<String>, Long> results) {
-		try (FileWriter writer = new FileWriter(path)) {
+		try (FileWriter writer = new FileWriter(path, true)) {
 			writer.write("set, count\n");
 			for (Entry<Set<String>, Long> entry : results.entrySet()) {
 				StringBuilder builder = new StringBuilder();
 				entry.getKey().forEach(key-> builder.append(key + " "));
 				builder.append("," + entry.getValue() + "\n");
-				writer.write(builder.toString());
+				String output = builder.toString();
+				System.out.println(output);
+				writer.append(output);
+				writer.flush();
 			}
+			writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
