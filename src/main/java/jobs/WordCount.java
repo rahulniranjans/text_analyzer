@@ -5,6 +5,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.StringTokenizer;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -19,13 +21,14 @@ public class WordCount implements Job<Object>{
 	private String inputPath;
 	private int chunkSize;
 	private int maxWords;
+	private String regex;
 	
-	public WordCount(DataProducer<String> producer, int chunkSize, int maxWords, String inputPath, String outputPath) {
+	public WordCount(DataProducer<String> producer, int chunkSize, String regex, String inputPath, String outputPath) {
 		this.producer = producer;
 		this.outputPath = outputPath;
 		this.inputPath = inputPath;
 		this.chunkSize = chunkSize;
-		this.maxWords = maxWords;
+		this.regex = regex;
 	}
 	
 	public Object execute() {
@@ -46,8 +49,10 @@ public class WordCount implements Job<Object>{
 			text = text.replaceAll("\\p{P}", " ");
 			StringTokenizer tokenizer = new StringTokenizer(text);
 			while (tokenizer.hasMoreTokens()) {
-				String token = tokenizer.nextToken();
-				map.compute(token, (word, count) -> count == null ? 1l : count + 1l);
+				String token = tokenizer.nextToken().trim();
+				if (Pattern.matches(this.regex, token)) {
+					map.compute(token, (word, count) -> count == null ? 1l : count + 1l);
+				}
 			}
 		}
 		producer.close();

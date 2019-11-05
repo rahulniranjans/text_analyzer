@@ -10,12 +10,21 @@ import java.util.Set;
 import data_producer.DataProducer;
 import data_producer.LineProducer;
 import jobs.SetCount;
+import jobs.WordCount;
 
 public class Driver {
 	public static void main(String[] args) {
 		long start = Instant.now().getEpochSecond();
 		runSetCount();
 		System.out.println("Runtime: " + (Instant.now().getEpochSecond() - start));
+	}
+	
+	private static void runWordCount() {
+		DataProducer<String> producer = new LineProducer(1024 * 100000);
+		WordCount wc = new WordCount(producer, 20, "and|of|then|how|on|to",
+				"/home/levi/Downloads/4GB.txt", 
+				"/home/levi/Documents/wordcount/4GB.txt");
+		wc.execute();
 	}
 	
 	private static void runSetCount() {
@@ -30,8 +39,8 @@ public class Driver {
 		bad.addAll(Arrays.asList(badWords));
 		sets.add(bad);
 		SetCount setCount = new SetCount(producer, sets, 
-				"C:\\Users\\signo\\OneDrive-Purdue University Fort Wayne\\Classes\\CS590_Big_Data\\Term_Project\\data\\8GB.txt", 
-				"C:\\Users\\signo\\OneDrive-Purdue University Fort Wayne\\Classes\\CS590_Big_Data\\Term_Project\\data\\setcount\\8GBOutput.txt");
+				"/home/levi/Downloads/4GB.txt", 
+				"/home/levi/Documents/setcount/4GB.txt");
 		setCount.execute();
 	}
 }
